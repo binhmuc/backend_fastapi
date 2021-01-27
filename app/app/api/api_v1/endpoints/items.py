@@ -23,7 +23,7 @@ def read_items(
         items = crud.item.get_multi(db, skip=skip, limit=limit)
     else:
         items = crud.item.get_multi_by_owner(
-            db=db, owner_id=current_user.id, skip=skip, limit=limit
+            db=db, owner_id=current_user.id, skip=skip, limit=limit, query = '?filter={"title": "123"}\n?filter={"description": "123"}'
         )
     return items
 
