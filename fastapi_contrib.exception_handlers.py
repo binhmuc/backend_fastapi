@@ -151,9 +151,6 @@ async def internal_server_error_handler(
     data = {"error_codes": [code], "message": detail, "fields": fields}
     return UJSONResponse(data, status_code=status_code, headers=headers)
 
-
-
-[docs]
 def setup_exception_handlers(app: FastAPI) -> None:
     
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
