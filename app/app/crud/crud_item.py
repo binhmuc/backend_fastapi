@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.crud.base import CRUDBase
 from app.models.item import Item
 from app.schemas.item import ItemCreate, ItemUpdate
+from app.db.query_builder import query_builder
 
 
 class CRUDItem(CRUDBase[Item, ItemCreate, ItemUpdate]):
@@ -20,10 +21,11 @@ class CRUDItem(CRUDBase[Item, ItemCreate, ItemUpdate]):
         return db_obj
 
     def get_multi_by_owner(
-        self, db: Session, *, owner_id: int, skip: int = 0, limit: int = 100
+        self, db: Session, *, owner_id: int, filter: str = '{}', skip: int = 0, limit: int = 100
     ) -> List[Item]:
+        print('get_multi_by_owner')
         return (
-            db.query(self.model)
+            query_builder(db=db, model=self.model, filter=filter)
             .filter(Item.owner_id == owner_id)
             .offset(skip)
             .limit(limit)
