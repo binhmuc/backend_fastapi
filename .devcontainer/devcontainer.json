@@ -1,0 +1,24 @@
+{
+	"name": "Existing Docker Compose (Extend)",
+
+	"dockerComposeFile": [
+		"../docker-compose.dev.yaml",
+		"docker-compose.yml"
+	],
+
+	"service": "api",
+
+	"workspaceFolder": "/backend_fastapi",
+
+	"settings": {
+		"terminal.integrated.shell.linux": "/bin/bash"
+	},
+
+	"extensions": [
+		"donjayamanne.githistory",
+		"eamodio.gitlens",
+		"ms-python.python",
+		"ms-python.vscode-pylance"
+	]
+
+}

@@ -1,6 +1,8 @@
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel
+
+from app.schemas.user import UserBase
 
 
 # Shared properties
@@ -24,6 +26,7 @@ class ItemInDBBase(ItemBase):
     id: int
     title: str
     owner_id: int
+    owner: Any
 
     class Config:
         orm_mode = True
