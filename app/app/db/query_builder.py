@@ -1,7 +1,7 @@
 import json
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 from typing import Type, TypeVar
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from app.db.base_class import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
@@ -47,26 +47,62 @@ ModelType = TypeVar("ModelType", bound=Base)
 # --->>>   SELECT * FROM items WHERE (title like '%a%' OR owner_id = 1) AND (owner_id <= 20 OR owner_id >= 10)
 
 
-def query_builder(db: Session, model: Type[ModelType], filter: str):
-    filter_obj = json.loads(filter)
-    filter = gen(model, filter_obj)
-    query = db.query(model).filter(filter)
-    print(query)
+def query_builder(
+    db: Session,
+    model: Type[ModelType],
+    filter: str = None,
+    order_by: str = None,
+    include: str = None,
+):
+    query = db.query(model)
+
+    if filter is not None:
+        filter = get_filter(model, json.loads(filter))
+        query = query.filter(filter)
+
+    if include is not None:
+        include = get_include(include)
+        query = query.options(*include)
+
+    if order_by is not None:
+        order_by = get_order_by(model, order_by)
+        query = query.order_by(*order_by)
+    print(str(query))
     return query
 
 
-def gen(model: Type[ModelType], filters):
+def get_filter(model: Type[ModelType], filters):
     if isinstance(filters, list):
-        return or_(*[gen(model, filter) for filter in filters])
+        return or_(*[get_filter(model, filter) for filter in filters])
 
     if isinstance(filters, dict):
         sub_filters = [value for key, value in filters.items() if key.isnumeric()]
-        ops_2 = [gen(model, sub_filter) for sub_filter in sub_filters]
+        ops_1 = [get_filter(model, sub_filter) for sub_filter in sub_filters]
 
         conditions = [cdt for cdt in filters.items() if not cdt[0].isnumeric()]
-        ops_1 = [get_op(model, *cdt) for cdt in conditions]
-        
+        ops_2 = [get_op(model, *cdt) for cdt in conditions]
+
         return and_(*ops_1, *ops_2)
+
+
+def get_count(query):
+    count_query = query.statement.with_only_columns([func.count()]).order_by(None)
+    count = query.session.execute(count_query).scalar()
+    return count
+
+
+def get_include(include):
+    return [selectinload(rlt) for rlt in include.split(",")]
+
+
+def get_order_by(model, order_by):
+    return [get_attr_order(model, attr) for attr in order_by.split(",")]
+
+
+def get_attr_order(model, attr):
+    if attr.startswith("-"):
+        return getattr(model, attr[1:]).desc()
+    return getattr(model, attr).asc()
 
 
 def get_op(model: Type[ModelType], key: str, value: str):

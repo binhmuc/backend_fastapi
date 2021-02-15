@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db.base_class import Base
-from app.db.query_builder import query_builder
+from app.db.query_builder import get_count, query_builder
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -28,9 +28,22 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return db.query(self.model).filter(self.model.id == id).first()
 
     def get_multi(
-        self, db: Session, *, filter: str = '{}', skip: int = 0, limit: int = 100
+        self,
+        db: Session,
+        *,
+        filter: str = None,
+        skip: int = 0,
+        limit: int = 100,
+        include: str = None,
+        order_by: str = None,
     ) -> List[ModelType]:
-        return query_builder(db=db, model=self.model, filter=filter).offset(skip).limit(limit).all()
+        query = query_builder(
+            db=db, model=self.model, filter=filter, order_by=order_by, include=include
+        )
+        return {
+            "total": get_count(query),
+            "results": query.offset(skip).limit(limit).all(),
+        }
 
     def create(self, db: Session, *, obj_in: CreateSchemaType) -> ModelType:
         obj_in_data = jsonable_encoder(obj_in)
@@ -45,7 +58,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db: Session,
         *,
         db_obj: ModelType,
-        obj_in: Union[UpdateSchemaType, Dict[str, Any]]
+        obj_in: Union[UpdateSchemaType, Dict[str, Any]],
     ) -> ModelType:
         obj_data = jsonable_encoder(db_obj)
         if isinstance(obj_in, dict):
