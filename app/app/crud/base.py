@@ -31,17 +31,19 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self,
         db: Session,
         *,
-        filter: str = "{}",
+        filter: str = None,
         skip: int = 0,
         limit: int = 100,
-        include: str = ""
+        include: str = None,
+        order_by: str = None,
     ) -> List[ModelType]:
-        query = (
-            query_builder(db=db, model=self.model, filter=filter, include=include)
-            .offset(skip)
-            .limit(limit)
+        query = query_builder(
+            db=db, model=self.model, filter=filter, order_by=order_by, include=include
         )
-        return {"count": get_count(query), "results": query.all()}
+        return {
+            "total": get_count(query),
+            "results": query.offset(skip).limit(limit).all(),
+        }
 
     def create(self, db: Session, *, obj_in: CreateSchemaType) -> ModelType:
         obj_in_data = jsonable_encoder(obj_in)
@@ -56,7 +58,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db: Session,
         *,
         db_obj: ModelType,
-        obj_in: Union[UpdateSchemaType, Dict[str, Any]]
+        obj_in: Union[UpdateSchemaType, Dict[str, Any]],
     ) -> ModelType:
         obj_data = jsonable_encoder(db_obj)
         if isinstance(obj_in, dict):

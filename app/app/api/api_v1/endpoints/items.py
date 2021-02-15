@@ -13,8 +13,9 @@ router = APIRouter()
 @router.get("/")
 def read_items(
     db: Session = Depends(deps.get_db),
-    filter: str = '{}',
-    include: str = '',
+    filter: str = None,
+    order_by: str = None,
+    include: str = None,
     skip: int = 0,
     limit: int = 100,
     current_user: models.User = Depends(deps.get_current_active_user),
@@ -23,10 +24,22 @@ def read_items(
     Retrieve items.
     """
     if crud.user.is_superuser(current_user):
-        items = crud.item.get_multi(db, filter=filter, include=include, skip=skip, limit=limit)
+        items = crud.item.get_multi(
+            db,
+            filter=filter,
+            include=include,
+            order_by=order_by,
+            skip=skip,
+            limit=limit,
+        )
     else:
         items = crud.item.get_multi_by_owner(
-            db=db, owner_id=current_user.id, filter=filter, include=include, skip=skip, limit=limit
+            db=db,
+            owner_id=current_user.id,
+            filter=filter,
+            include=include,
+            skip=skip,
+            limit=limit,
         )
     return items
 

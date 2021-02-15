@@ -47,9 +47,27 @@ ModelType = TypeVar("ModelType", bound=Base)
 # --->>>   SELECT * FROM items WHERE (title like '%a%' OR owner_id = 1) AND (owner_id <= 20 OR owner_id >= 10)
 
 
-def query_builder(db: Session, model: Type[ModelType], filter: str, include: str):
-    filter = get_filter(model, json.loads(filter))
-    query = db.query(model).filter(filter).options(selectinload(include))
+def query_builder(
+    db: Session,
+    model: Type[ModelType],
+    filter: str = None,
+    order_by: str = None,
+    include: str = None,
+):
+    query = db.query(model)
+
+    if filter is not None:
+        filter = get_filter(model, json.loads(filter))
+        query = query.filter(filter)
+
+    if include is not None:
+        include = get_include(include)
+        query = query.options(*include)
+
+    if order_by is not None:
+        order_by = get_order_by(model, order_by)
+        query = query.order_by(*order_by)
+    print(str(query))
     return query
 
 
@@ -68,9 +86,23 @@ def get_filter(model: Type[ModelType], filters):
 
 
 def get_count(query):
-    count_query = query.statement.with_only_columns([func.count()])
+    count_query = query.statement.with_only_columns([func.count()]).order_by(None)
     count = query.session.execute(count_query).scalar()
     return count
+
+
+def get_include(include):
+    return [selectinload(rlt) for rlt in include.split(",")]
+
+
+def get_order_by(model, order_by):
+    return [get_attr_order(model, attr) for attr in order_by.split(",")]
+
+
+def get_attr_order(model, attr):
+    if attr.startswith("-"):
+        return getattr(model, attr[1:]).desc()
+    return getattr(model, attr).asc()
 
 
 def get_op(model: Type[ModelType], key: str, value: str):
