@@ -132,13 +132,7 @@ class Item(BaseModel):
     owner: str
 
     def __acl__(self):
-        """ defines who can do what to the model instance
-        the function returns a list containing tuples in the form of
-        (Allow or Deny, principal identifier, permission name)
-        If a role is not listed (like "role:user") the access will be
-        automatically deny. It's like a (Deny, Everyone, All) is automatically
-        appended at the end.
-        """
+        
         return [
             (Allow, Authenticated, "view"),
             (Allow, "role:admin", "use"),
@@ -215,4 +209,3 @@ async def show_item(item: Item = Permission("view", get_item)):
 @app.get("/item/{item_id}/use")
 async def use_item(item: Item = Permission("use", get_item)):
     return [{"item": item}]
-
